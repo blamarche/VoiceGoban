@@ -1,0 +1,19 @@
+﻿<Window x:Name="mainWin" x:Class="STTGoPlayer.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:STTGoPlayer"
+        mc:Ignorable="d" Left="0" Top="0"
+        Title="VoiceGoban - github.com/blamarche" Height="73.927" Width="289.153" Topmost="True" ResizeMode="NoResize" Background="#FF383838">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="273*"/>
+            <ColumnDefinition Width="10*"/>
+        </Grid.ColumnDefinitions>
+        <Label x:Name="lStatus" Content="..." HorizontalAlignment="Left" Margin="4,5,0,0" VerticalAlignment="Top" Width="246" FontWeight="Bold" BorderBrush="#FFDDDDDD" BorderThickness="0,0,0,1" Foreground="#FFD7D7D7"/>
+        <Button x:Name="bHelp" Content="?" Margin="256,8,7.4,0" VerticalAlignment="Top" Click="BHelp_Click" Grid.ColumnSpan="2"/>
+        <TextBlock x:Name="tHelp" HorizontalAlignment="Left" Margin="4,40,-334.6,-824" TextWrapping="Wrap" Text="Help Goes Here" VerticalAlignment="Top" Height="828" Width="613" IsEnabled="False" Grid.ColumnSpan="2" Foreground="#FFD7D7D7"/>
+
+    </Grid>
+</Window>
