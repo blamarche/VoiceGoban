@@ -77,7 +77,7 @@ DISABLE AUTO - (default) Disables auto-click after moving cursor
 ENABLE AUTO - Enables auto-click after moving cursor
 
 DISABLE I COORDINATE - (default) Disables processing 'I' as a valid horizontal coordinate
-DISABLE I COORDINATE - Enables processing 'I' as a valid horizontal coordinate
+ENABLE I COORDINATE - Enables processing 'I' as a valid horizontal coordinate
 
 DISABLE READ BACK - (default) Disables reading coordinates back to you
 ENABLE READ BACK - Enables reading coordinates back to you
