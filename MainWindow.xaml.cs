@@ -17,6 +17,7 @@ using System.Speech.Synthesis;
 using System.Globalization;
 using System.Runtime.InteropServices;
 using System.IO;
+using WpfApplicationHotKey.WinApi;
 
 namespace STTGoPlayer
 {
@@ -33,6 +34,7 @@ namespace STTGoPlayer
         static bool enableReadback = false;
         static bool autoPlay = false;
         static int boardSize = 19;
+        static bool enableHotkeys = true;
         static VoiceGender computervoice = VoiceGender.Female;
         static Vector topLeft = new Vector();
         static Vector bottomRight = new Vector();
@@ -76,6 +78,9 @@ BOARD SIZE 9 - Set board size to 9x9
 DISABLE AUTO - (default) Disables auto-click after moving cursor
 ENABLE AUTO - Enables auto-click after moving cursor
 
+DISABLE HOT KEYS - Disables use of arrows to move cursor, Tab to click
+ENABLE HOT KEYS - (default) Enables use of arrows to move cursor, Tab to click
+
 DISABLE I COORDINATE - (default) Disables processing 'I' as a valid horizontal coordinate
 ENABLE I COORDINATE - Enables processing 'I' as a valid horizontal coordinate
 
@@ -105,6 +110,8 @@ FEMALE VOICE - Set computer readback voice to female
             ch_play.Add("enable auto");
             ch_play.Add("disable read back");
             ch_play.Add("enable read back");
+            ch_play.Add("disable hot keys");
+            ch_play.Add("enable hot keys");
             ch_play.Add("ascending");
             ch_play.Add("descending");
             ch_play.Add("board size 19");
@@ -155,10 +162,32 @@ FEMALE VOICE - Set computer readback voice to female
             sre.LoadGrammarAsync(g_play);
             sre.LoadGrammarAsync(g_Coord);
 
+            if (enableHotkeys)
+                EnableHotkeys();
+
             sre.RecognizeAsync(RecognizeMode.Multiple);
             win.lStatus.Content = "Listening...";
             if (enableReadback)
                 ss.SpeakAsync("Voice Go Bon Listening...");
+        }
+
+        private HotKey hk_Tab, hk_Left, hk_Right, hk_Up, hk_Down;
+        void EnableHotkeys()
+        {
+            hk_Tab = new HotKey(ModifierKeys.None, Keys.Tab, this);
+            hk_Tab.HotKeyPressed += (k) => {ClickMouse();};
+
+            hk_Left = new HotKey(ModifierKeys.None, Keys.Left, this);
+            hk_Left.HotKeyPressed += (k) => { MoveMouseRelative(MouseDirection.LEFT); };
+
+            hk_Right = new HotKey(ModifierKeys.None, Keys.Right, this);
+            hk_Right.HotKeyPressed += (k) => { MoveMouseRelative(MouseDirection.RIGHT); };
+
+            hk_Up = new HotKey(ModifierKeys.None, Keys.Up, this);
+            hk_Up.HotKeyPressed += (k) => { MoveMouseRelative(MouseDirection.UP); };
+
+            hk_Down = new HotKey(ModifierKeys.None, Keys.Down, this);
+            hk_Down.HotKeyPressed += (k) => { MoveMouseRelative(MouseDirection.DOWN); };
         }
 
         const float CONFIDENCE_THRESHOLD = 0.60f;
@@ -218,6 +247,18 @@ FEMALE VOICE - Set computer readback voice to female
                 win.lStatus.Content = "'I' coord enabled";
                 ss.SpeakAsync("I coordinate enabled");
                 icoordEnabled = true;
+            }
+            else if (txt.IndexOf("disable hot keys") >= 0)
+            {
+                win.lStatus.Content = "Hotkeys disabled";
+                ss.SpeakAsync("Hot keys disabled. Please restart Voice Go bon");
+                enableHotkeys = false;
+            }
+            else if (txt.IndexOf("enable hot keys") >= 0)
+            {
+                win.lStatus.Content = "Hotkeys enabled";
+                ss.SpeakAsync("Hot keys enabled. Please restart Voice Go bon");
+                enableHotkeys = true;
             }
             else if (txt.IndexOf("male voice") >= 0)
             {
@@ -309,7 +350,7 @@ FEMALE VOICE - Set computer readback voice to female
 
                 if (vindex>0 && vindex<=boardSize && hindex>0 && hindex<=boardSize)
                 {
-                    win.lStatus.Content = ((int)(confidence*100)).ToString()+ "|Move: "+txt.ToUpper()+"|"+hindex.ToString()+","+vindex.ToString();
+                    win.lStatus.Content = "Move: "+txt.ToUpper();
 
                     MoveMouseTo(hindex, vindex);
 
@@ -348,7 +389,8 @@ FEMALE VOICE - Set computer readback voice to female
             s += topLeft.X + "\n";
             s += topLeft.Y + "\n";
             s += bottomRight.X + "\n";
-            s += bottomRight.Y + "\n";
+            s += bottomRight.X + "\n";
+            s += enableHotkeys + "\n";
 
             File.WriteAllText(path + SETTINGS_FILE, s);
         }
@@ -369,6 +411,7 @@ FEMALE VOICE - Set computer readback voice to female
                     case 7: topLeft.Y = double.Parse(lines[i]); break;
                     case 8: bottomRight.X = double.Parse(lines[i]); break;
                     case 9: bottomRight.Y = double.Parse(lines[i]); break;
+                    case 10: enableHotkeys = bool.Parse(lines[i]); break;
                 }
             }
         }
@@ -383,16 +426,10 @@ FEMALE VOICE - Set computer readback voice to female
                 {
                     string f = File.ReadAllText(path+SETTINGS_FILE);
                     string[] t = f.Split('\n');
-                    ReadSettingLine(0, t);
-                    ReadSettingLine(1, t);
-                    ReadSettingLine(2, t);
-                    ReadSettingLine(3, t);
-                    ReadSettingLine(4, t);
-                    ReadSettingLine(5, t);
-                    ReadSettingLine(6, t);
-                    ReadSettingLine(7, t);
-                    ReadSettingLine(8, t);
-                    ReadSettingLine(9, t);
+                    for (int i=0; i<11; i++)
+                    {
+                        ReadSettingLine(i, t);
+                    }
                 }
             }
             catch (Exception e)
@@ -415,6 +452,58 @@ FEMALE VOICE - Set computer readback voice to female
             }
         }
 
+        private static double GetGridVertPx()
+        {
+            double w = bottomRight.X - topLeft.X;
+            double wpx = w / (double)(boardSize - 1);
+            return wpx;
+        }
+
+        private static double GetGridHorizPx()
+        {
+            double h = bottomRight.Y - topLeft.Y;
+            double hpx = h / (double)(boardSize - 1);
+            return hpx;
+        }
+
+        enum MouseDirection
+        {
+            LEFT,
+            RIGHT,
+            UP,
+            DOWN
+        }
+
+        private const double SCREEN_CONVERT_AMOUNT = 65535.0f;
+        private static void MoveMouseRelative(MouseDirection d)
+        {
+            double wpx = GetGridHorizPx();
+            double hpx = GetGridVertPx();
+
+            var p = Pos();
+            Vector v = new Vector(p.X, p.Y);
+           
+            switch (d)
+            {
+                case MouseDirection.LEFT:
+                    v.X -= wpx;
+                    break;
+                case MouseDirection.RIGHT:
+                    v.X += wpx;
+                    break;
+                case MouseDirection.UP:
+                    v.Y -= hpx;
+                    break;
+                case MouseDirection.DOWN:
+                    v.Y += hpx;
+                    break;
+            }
+
+            var x = SCREEN_CONVERT_AMOUNT * v.X / System.Windows.SystemParameters.PrimaryScreenWidth;
+            var y = SCREEN_CONVERT_AMOUNT * v.Y / System.Windows.SystemParameters.PrimaryScreenHeight;
+            InputHelper.SendMouse((uint)(InputHelper.MouseEventF.MOUSEEVENTF_ABSOLUTE | InputHelper.MouseEventF.MOUSEEVENTF_MOVE), 0, (int)x, (int)y);
+        }
+
         private static void MoveMouseTo(int hindex, int vindex)
         {
             hindex -= 1;
@@ -424,15 +513,14 @@ FEMALE VOICE - Set computer readback voice to female
                 vindex = boardSize - vindex - 1;
             }
             //NOTE: we must have 'false' set in dpi-aware app.manifest for this calculation to work
-            double w = bottomRight.X - topLeft.X;
-            double h = bottomRight.Y - topLeft.Y;
-            double wpx = w / (double)(boardSize-1);
-            double hpx = h / (double)(boardSize-1);
+
+            double wpx = GetGridHorizPx();
+            double hpx = GetGridVertPx();
             double woffset = wpx * hindex + topLeft.X;
             double hoffset = hpx * vindex + topLeft.Y;
 
-            var x = 65535.0f * woffset / System.Windows.SystemParameters.PrimaryScreenWidth;
-            var y = 65535.0f * hoffset / System.Windows.SystemParameters.PrimaryScreenHeight;
+            var x = SCREEN_CONVERT_AMOUNT * woffset / System.Windows.SystemParameters.PrimaryScreenWidth;
+            var y = SCREEN_CONVERT_AMOUNT * hoffset / System.Windows.SystemParameters.PrimaryScreenHeight;
             InputHelper.SendMouse((uint)(InputHelper.MouseEventF.MOUSEEVENTF_ABSOLUTE | InputHelper.MouseEventF.MOUSEEVENTF_MOVE), 0, (int)x, (int)y);
         }
 

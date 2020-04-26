@@ -54,6 +54,9 @@ BOARD SIZE 9 - Set board size to 9x9
 DISABLE AUTO - (default) Disables auto-click after moving cursor
 ENABLE AUTO - Enables auto-click after moving cursor
 
+DISABLE HOT KEYS - Disables use of arrows to move cursor, Tab to click
+ENABLE HOT KEYS - (default) Enables use of arrows to move cursor, Tab to click
+
 DISABLE I COORDINATE - (default) Disables processing 'I' as a valid horizontal coordinate
 ENABLE I COORDINATE - Enables processing 'I' as a valid horizontal coordinate
 
