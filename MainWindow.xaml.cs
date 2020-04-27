@@ -171,11 +171,14 @@ FEMALE VOICE - Set computer readback voice to female
                 ss.SpeakAsync("Voice Go Bon Listening...");
         }
 
-        private HotKey hk_Tab, hk_Left, hk_Right, hk_Up, hk_Down;
+        private HotKey hk_Tab, hk_Left, hk_Right, hk_Up, hk_Down, hk_Numpad5;
         void EnableHotkeys()
         {
             hk_Tab = new HotKey(ModifierKeys.None, Keys.Tab, this);
             hk_Tab.HotKeyPressed += (k) => {ClickMouse();};
+
+            hk_Numpad5 = new HotKey(ModifierKeys.None, Keys.Clear, this);
+            hk_Numpad5.HotKeyPressed += (k) => { ClickMouse(); };
 
             hk_Left = new HotKey(ModifierKeys.None, Keys.Left, this);
             hk_Left.HotKeyPressed += (k) => { MoveMouseRelative(MouseDirection.LEFT); };
@@ -260,18 +263,18 @@ FEMALE VOICE - Set computer readback voice to female
                 ss.SpeakAsync("Hot keys enabled. Please restart Voice Go bon");
                 enableHotkeys = true;
             }
-            else if (txt.IndexOf("male voice") >= 0)
-            {
-                win.lStatus.Content = "Male voice";
-                ss.SpeakAsync("Male voice");
-                computervoice = VoiceGender.Male;
-                ss.SelectVoiceByHints(computervoice);
-            }
             else if (txt.IndexOf("female voice") >= 0)
             {
                 win.lStatus.Content = "Female voice";
                 ss.SpeakAsync("Female voice");
                 computervoice = VoiceGender.Female;
+                ss.SelectVoiceByHints(computervoice);
+            }
+            else if (txt.IndexOf("male voice") >= 0)
+            {
+                win.lStatus.Content = "Male voice";
+                ss.SpeakAsync("Male voice");
+                computervoice = VoiceGender.Male;
                 ss.SelectVoiceByHints(computervoice);
             }
             else if (txt.IndexOf("disable auto") >= 0)
@@ -540,12 +543,12 @@ FEMALE VOICE - Set computer readback voice to female
             win.tHelp.IsEnabled = !win.tHelp.IsEnabled;
             if (win.tHelp.IsEnabled)
             {
-                win.Height += 500;
+                win.Height += 550;
                 win.Width += 260;
             }
             else
             {
-                win.Height -= 500;
+                win.Height -= 550;
                 win.Width -= 260;
             }
         }
