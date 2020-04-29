@@ -171,7 +171,7 @@ FEMALE VOICE - Set computer readback voice to female
                 ss.SpeakAsync("Voice Go Bon Listening...");
         }
 
-        private HotKey hk_Tab, hk_Left, hk_Right, hk_Up, hk_Down, hk_Numpad5;
+        private HotKey hk_Tab, hk_Left, hk_Right, hk_Up, hk_Down, hk_Numpad5, hk_BrowserHome, hk_BrowserBack;
         void EnableHotkeys()
         {
             hk_Tab = new HotKey(ModifierKeys.None, Keys.Tab, this);
@@ -179,6 +179,12 @@ FEMALE VOICE - Set computer readback voice to female
 
             hk_Numpad5 = new HotKey(ModifierKeys.None, Keys.Clear, this);
             hk_Numpad5.HotKeyPressed += (k) => { ClickMouse(); };
+
+            hk_BrowserHome = new HotKey(ModifierKeys.None, Keys.BrowserHome, this);
+            hk_BrowserHome.HotKeyPressed += (k) => { ClickMouse(); };
+
+            hk_BrowserBack = new HotKey(ModifierKeys.None, Keys.BrowserBack, this);
+            hk_BrowserBack.HotKeyPressed += (k) => { ClickMouse(); };
 
             hk_Left = new HotKey(ModifierKeys.None, Keys.Left, this);
             hk_Left.HotKeyPressed += (k) => { MoveMouseRelative(MouseDirection.LEFT); };
