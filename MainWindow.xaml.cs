@@ -398,7 +398,7 @@ FEMALE VOICE - Set computer readback voice to female
             s += topLeft.X + "\n";
             s += topLeft.Y + "\n";
             s += bottomRight.X + "\n";
-            s += bottomRight.X + "\n";
+            s += bottomRight.Y + "\n";
             s += enableHotkeys + "\n";
 
             File.WriteAllText(path + SETTINGS_FILE, s);
