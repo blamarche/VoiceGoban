@@ -1,0 +1,40 @@
+﻿- Voice Commands Help - 
+SPEECH OFF - Disable voice processing
+SPEECH ON - (default) Enable voice processing
+
+CONFIGURE TOP LEFT - Sets the top corner of the board grid to the mouse position
+CONFIGURE BOTTOM RIGHT - Sets the bottom corner of the board grid to the mouse position
+
+CLICK - click mouse at current position
+<H-Coord> <V-Coord> - Move cursor to grid position specified. Ex: 'C 17' or 'Bravo 4'
+
+- Options -
+ASCENDING - Set vertical coordinates to be ascending from 1-19
+DESCENDING - Set vertical coordinates to be descending from 19-1
+
+BOARD SIZE 19 - Set board size to 19x19
+BOARD SIZE 13 - Set board size to 13x13
+BOARD SIZE 9 - Set board size to 9x9
+
+DISABLE AUTO - (default) Disables auto-click after moving cursor
+ENABLE AUTO - Enables auto-click after moving cursor
+
+DISABLE HOT KEYS - Disables use of arrows to move cursor, Tab to click
+ENABLE HOT KEYS - (default) Enables use of arrows to move cursor, Tab to click
+
+DISABLE I COORDINATE - (default) Disables processing 'I' as a valid horizontal coordinate
+ENABLE I COORDINATE - Enables processing 'I' as a valid horizontal coordinate
+
+DISABLE READ BACK - (default) Disables reading your own coordinates back to you
+ENABLE READ BACK - Enables reading your own coordinates back to you
+
+MALE VOICE - Set computer readback voice to male
+FEMALE VOICE - Set computer readback voice to female
+
+- Experimental -
+START GAME AS BLACK - Start reading opponent's move coordinates 
+START GAME AS WHITE - Start reading opponent's move coordinates 
+STOP GAME - Stop reading back opponents moves
+
+DISABLE READING OPPONENT COLOR - Don't read the opponent color before each move
+ENABLE READING OPPONENT COLOR - (default) Read the opponent color before each move

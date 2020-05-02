@@ -18,6 +18,7 @@ using System.Globalization;
 using System.Runtime.InteropServices;
 using System.IO;
 using WpfApplicationHotKey.WinApi;
+using System.Windows.Threading;
 
 namespace STTGoPlayer
 {
@@ -26,6 +27,8 @@ namespace STTGoPlayer
     /// </summary>
     public partial class MainWindow : Window
     {
+        const int BOARD_STATE_TICK_MS = 333;
+
         static SpeechSynthesizer ss = new SpeechSynthesizer();
         static SpeechRecognitionEngine sre;
 
@@ -33,6 +36,7 @@ namespace STTGoPlayer
         static bool icoordEnabled = false;
         static bool enableReadback = false;
         static bool autoPlay = false;
+        static bool enableOpponentColorRead = true;
         static int boardSize = 19;
         static bool enableHotkeys = true;
         static VoiceGender computervoice = VoiceGender.Female;
@@ -42,12 +46,18 @@ namespace STTGoPlayer
         static MainWindow win;
         static bool speechOn = true;
 
+        static BoardState.Stone currentGameColor;
+        static BoardState currentGame;
+        static DispatcherTimer boardStateTimer;
+
         public MainWindow()
         {
             InitializeComponent();
             win = this;
-
+             
             LoadSettings();
+
+            currentGameColor = BoardState.Stone.Empty;
 
             ss.SetOutputToDefaultAudioDevice();
             ss.SelectVoiceByHints(computervoice);
@@ -56,40 +66,8 @@ namespace STTGoPlayer
             sre = new SpeechRecognitionEngine(ci);
             sre.SetInputToDefaultAudioDevice();
             sre.SpeechRecognized += sre_SpeechRecognized;
-
-            win.tHelp.Text = @"- Voice Commands Help -
-SPEECH OFF - Disable voice processing
-SPEECH ON - (default) Enable voice processing
-
-CONFIGURE TOP LEFT - Sets the top left corner of the board grid to the mouse position
-CONFIGURE BOTTOM RIGHT - Sets the bottom right corner of the board grid to the mouse position
-
-CLICK - click mouse at current position
-<H-Coord> <V-Coord> - Move cursor to grid position specified. Ex: 'C 17' or 'Bravo 4'
-
-- Options -
-ASCENDING - Set vertical coordinates to be ascending from 1-19
-DESCENDING - Set vertical coordinates to be descending from 19-1
-
-BOARD SIZE 19 - Set board size to 19x19
-BOARD SIZE 13 - Set board size to 13x13
-BOARD SIZE 9 - Set board size to 9x9
-
-DISABLE AUTO - (default) Disables auto-click after moving cursor
-ENABLE AUTO - Enables auto-click after moving cursor
-
-DISABLE HOT KEYS - Disables use of arrows to move cursor, Tab to click
-ENABLE HOT KEYS - (default) Enables use of arrows to move cursor, Tab to click
-
-DISABLE I COORDINATE - (default) Disables processing 'I' as a valid horizontal coordinate
-ENABLE I COORDINATE - Enables processing 'I' as a valid horizontal coordinate
-
-DISABLE READ BACK - (default) Disables reading coordinates back to you
-ENABLE READ BACK - Enables reading coordinates back to you
-
-MALE VOICE - Set computer readback voice to male
-FEMALE VOICE - Set computer readback voice to female
-";
+            
+            win.tHelp.Text = File.ReadAllText("help.txt")+"\r\n";
             
             Choices ch_StartStopCommands = new Choices();
             ch_StartStopCommands.Add("speech on");
@@ -106,10 +84,15 @@ FEMALE VOICE - Set computer readback voice to female
             ch_play.Add("configure bottom right");
             ch_play.Add("disable eye coordinate");
             ch_play.Add("enable eye coordinate");
+            ch_play.Add("disable reading opponent");
+            ch_play.Add("enable reading opponent");
             ch_play.Add("disable auto");
             ch_play.Add("enable auto");
             ch_play.Add("disable read back");
             ch_play.Add("enable read back");
+            ch_play.Add("start game as black");
+            ch_play.Add("start game as white");
+            ch_play.Add("stop game");
             ch_play.Add("disable hot keys");
             ch_play.Add("enable hot keys");
             ch_play.Add("ascending");
@@ -164,11 +147,53 @@ FEMALE VOICE - Set computer readback voice to female
 
             if (enableHotkeys)
                 EnableHotkeys();
+            
+            boardStateTimer = new DispatcherTimer();
+            boardStateTimer.Tick += boardStateTimer_Tick;
+            boardStateTimer.Interval = new TimeSpan(0, 0, 0, 0, BOARD_STATE_TICK_MS);            
 
             sre.RecognizeAsync(RecognizeMode.Multiple);
             win.lStatus.Content = "Listening...";
             if (enableReadback)
                 ss.SpeakAsync("Voice Go Bon Listening...");
+        
+        }
+
+        private void boardStateTimer_Tick(object sender, EventArgs e)
+        {
+            currentGame.UpdateBoardState(false);
+            var changes = currentGame.GetBoardChanges();
+            if (changes != null && changes.Length>0)
+            {
+                //int count = 0;
+                foreach (var c in changes)
+                {
+                    if (c.PreviousStone==BoardState.Stone.Empty && c.Stone!= currentGameColor)
+                    {
+                        var s = currentGame.BoardString;
+                        int x = c.X + 65;
+                        if (!icoordEnabled && c.X > 7)
+                            x += 1;
+
+                        string ch = Char.ToString((char)(x));
+                        string color = (enableOpponentColorRead ? c.Stone.ToString()+", " : "");
+
+                        if (ascending)
+                            ss.SpeakAsync(color + ch + ", " + (c.Y + 1));
+                        else
+                            ss.SpeakAsync(color + ch + ", " + (boardSize - c.Y));
+
+                        //count++;
+                        //if (count >= 2)
+                        break;
+                    }
+                }
+            }
+        }
+
+        private void Window_Loaded(object sender, RoutedEventArgs e)
+        {
+            //future use
         }
 
         private HotKey hk_Tab, hk_Left, hk_Right, hk_Up, hk_Down, hk_Numpad5, hk_BrowserHome, hk_BrowserBack;
@@ -199,6 +224,12 @@ FEMALE VOICE - Set computer readback voice to female
             hk_Down.HotKeyPressed += (k) => { MoveMouseRelative(MouseDirection.DOWN); };
         }
 
+        static void SpeakAndLabel(string speak, string label="")
+        {
+            win.lStatus.Content = (label=="" ? speak.ToUpper():label.ToUpper());
+            ss.SpeakAsync(speak);
+        }
+
         const float CONFIDENCE_THRESHOLD = 0.60f;
         static void sre_SpeechRecognized(object sender,SpeechRecognizedEventArgs e)
         {
@@ -214,14 +245,12 @@ FEMALE VOICE - Set computer readback voice to female
             //turn whole system on/off
             if (txt.IndexOf("speech on") >= 0)
             {
-                win.lStatus.Content = ("Speech ON");
-                ss.Speak("Speech detection enabled");
+                SpeakAndLabel("Speech detection on");
                 speechOn = true;
             }
             else if (txt.IndexOf("speech off") >= 0)
             {
-                win.lStatus.Content = ("Speech OFF");
-                ss.Speak("Speech detection disabled");
+                SpeakAndLabel("Speech detection off");
                 speechOn = false;
             }
             if (speechOn == false) return;
@@ -233,115 +262,128 @@ FEMALE VOICE - Set computer readback voice to female
             }
             else if (txt.IndexOf("configure top")>=0)
             {
-                //TODO: get mouse pos
-                win.lStatus.Content = "SET TOP LEFT";
                 SaveMousePosition(true);
-                ss.SpeakAsync("Top left saved");
+                SpeakAndLabel("Top left saved", "SET TOP LEFT");
             }
             else if (txt.IndexOf("configure bottom") >= 0)
             {
-                //TODO: get mouse pos
-                win.lStatus.Content = "SET BOTTOM RIGHT";
                 SaveMousePosition(false);
-                ss.SpeakAsync("Bottom right saved");
+                SpeakAndLabel("Bottom right saved", "SET BOTTOM RIGHT");
+            }
+            else if (txt.IndexOf("start game as") >= 0)
+            {
+                if (txt.IndexOf("white") >= 0)
+                {
+                    currentGameColor = BoardState.Stone.White;
+                    SpeakAndLabel("Game started as white player");
+                }
+                else
+                {
+                    currentGameColor = BoardState.Stone.Black;
+                    SpeakAndLabel("Game started as black player");
+                }
+                currentGame = new BoardState(boardSize, topLeft, bottomRight);                
+                boardStateTimer.Start();
+            }
+            else if (txt.IndexOf("stop game") >= 0)
+            {
+                currentGameColor = BoardState.Stone.Empty;
+                SpeakAndLabel("Game reading stopped");                
+                boardStateTimer.Stop();
             }
             else if (txt.IndexOf("disable eye") >= 0)
             {
-                win.lStatus.Content = "'I' coord disabled";
-                ss.SpeakAsync("I coordinate disabled");
+                SpeakAndLabel("I coordinate disabled");
                 icoordEnabled = false;
             }
             else if (txt.IndexOf("enable eye") >= 0)
             {
-                win.lStatus.Content = "'I' coord enabled";
-                ss.SpeakAsync("I coordinate enabled");
+                SpeakAndLabel("I coordinate enabled");
                 icoordEnabled = true;
+            }
+            else if (txt.IndexOf("disable reading opponent") >= 0)
+            {
+                SpeakAndLabel("Reading opponent color disabled");
+                enableOpponentColorRead = false;
+            }
+            else if (txt.IndexOf("enable reading opponent") >= 0)
+            {
+                SpeakAndLabel("Reading opponent color enabled");
+                enableOpponentColorRead = true;
             }
             else if (txt.IndexOf("disable hot keys") >= 0)
             {
                 win.lStatus.Content = "Hotkeys disabled";
-                ss.SpeakAsync("Hot keys disabled. Please restart Voice Go bon");
+                SpeakAndLabel("Hot keys disabled. Please restart Voice Go bon");
                 enableHotkeys = false;
             }
             else if (txt.IndexOf("enable hot keys") >= 0)
             {
                 win.lStatus.Content = "Hotkeys enabled";
-                ss.SpeakAsync("Hot keys enabled. Please restart Voice Go bon");
+                SpeakAndLabel("Hot keys enabled. Please restart Voice Go bon");
                 enableHotkeys = true;
             }
             else if (txt.IndexOf("female voice") >= 0)
             {
-                win.lStatus.Content = "Female voice";
-                ss.SpeakAsync("Female voice");
+                SpeakAndLabel("Female voice");
                 computervoice = VoiceGender.Female;
                 ss.SelectVoiceByHints(computervoice);
             }
             else if (txt.IndexOf("male voice") >= 0)
             {
-                win.lStatus.Content = "Male voice";
-                ss.SpeakAsync("Male voice");
+                SpeakAndLabel("Male voice");
                 computervoice = VoiceGender.Male;
                 ss.SelectVoiceByHints(computervoice);
             }
             else if (txt.IndexOf("disable auto") >= 0)
             {
-                win.lStatus.Content = "Autoplay disabled";
-                ss.SpeakAsync("Autoplay disabled");
+                SpeakAndLabel("Autoplay disabled");
                 autoPlay = false;
             }
             else if (txt.IndexOf("enable auto") >= 0)
             {
-                win.lStatus.Content = "Autoplay enabled";
-                ss.SpeakAsync("Autoplay enabled");
+                SpeakAndLabel("Autoplay enabled");
                 autoPlay = true;
             }
             else if (txt.IndexOf("disable read") >= 0)
             {
-                win.lStatus.Content = "Coord readback disabled";
-                ss.SpeakAsync("Coord readback disabled");
+                SpeakAndLabel("Coord readback disabled");
                 enableReadback = false;
             }
             else if (txt.IndexOf("enable read") >= 0)
             {
-                win.lStatus.Content = "Coord readback enabled";
-                ss.SpeakAsync("Coord readback enabled");
+                SpeakAndLabel("Coord readback enabled");
                 enableReadback = true;
             }
             else if (txt.IndexOf("ascending") >= 0)
             {
-                win.lStatus.Content = "Ascending coords";
-                ss.SpeakAsync("Ascending coordinate order");
+                SpeakAndLabel("Ascending coordinate order");
                 ascending = true;
             }
             else if (txt.IndexOf("descending") >= 0)
             {
-                win.lStatus.Content = "Descending coords";
-                ss.SpeakAsync("Descending coordinate order");
+                SpeakAndLabel("Descending coordinate order");
                 ascending = false;
             }
             else if (txt.IndexOf("board size 19") >= 0)
             {
-                win.lStatus.Content = "board size 19";
-                ss.SpeakAsync("board size 19");
+                SpeakAndLabel("board size 19");
                 boardSize = 19;
             }
             else if (txt.IndexOf("board size 13") >= 0)
             {
-                win.lStatus.Content = "board size 13";
-                ss.SpeakAsync("board size 13");
+                SpeakAndLabel("board size 13");
                 boardSize = 13;
             }
             else if (txt.IndexOf("board size 9") >= 0)
             {
-                win.lStatus.Content = "board size 9";
-                ss.SpeakAsync("board size 9");
+                SpeakAndLabel("board size 9");
                 boardSize = 9;
             }
             else if (txt.IndexOf("click") >= 0)
             {
                 ClickMouse();
-                win.lStatus.Content = "CLICK";
-                ss.SpeakAsync("click");
+                SpeakAndLabel("click");
             }
             else //move mouse to coordinate
             {
@@ -359,7 +401,7 @@ FEMALE VOICE - Set computer readback voice to female
 
                 if (vindex>0 && vindex<=boardSize && hindex>0 && hindex<=boardSize)
                 {
-                    win.lStatus.Content = "Move: "+txt.ToUpper();
+                    win.lStatus.Content = "MOVE: "+txt.ToUpper();
 
                     MoveMouseTo(hindex, vindex);
 
@@ -368,7 +410,7 @@ FEMALE VOICE - Set computer readback voice to female
                     if (enableReadback)
                         ss.SpeakAsync(txt.Replace("AIY","A"));
                 }
-                return;
+                return;//skip setting save
             }
 
             //got this far? save settings
@@ -400,6 +442,7 @@ FEMALE VOICE - Set computer readback voice to female
             s += bottomRight.X + "\n";
             s += bottomRight.Y + "\n";
             s += enableHotkeys + "\n";
+            s += enableOpponentColorRead + "\n";
 
             File.WriteAllText(path + SETTINGS_FILE, s);
         }
@@ -421,6 +464,7 @@ FEMALE VOICE - Set computer readback voice to female
                     case 8: bottomRight.X = double.Parse(lines[i]); break;
                     case 9: bottomRight.Y = double.Parse(lines[i]); break;
                     case 10: enableHotkeys = bool.Parse(lines[i]); break;
+                    case 11: enableOpponentColorRead = bool.Parse(lines[i]); break;
                 }
             }
         }
@@ -435,7 +479,7 @@ FEMALE VOICE - Set computer readback voice to female
                 {
                     string f = File.ReadAllText(path+SETTINGS_FILE);
                     string[] t = f.Split('\n');
-                    for (int i=0; i<11; i++)
+                    for (int i=0; i<t.Length+1; i++)
                     {
                         ReadSettingLine(i, t);
                     }
@@ -549,13 +593,15 @@ FEMALE VOICE - Set computer readback voice to female
             win.tHelp.IsEnabled = !win.tHelp.IsEnabled;
             if (win.tHelp.IsEnabled)
             {
-                win.Height += 550;
-                win.Width += 260;
+                win.rHelp.Height = new GridLength(9, GridUnitType.Star);
+                win.Height += 480;
+                win.Width += 270;
             }
             else
             {
-                win.Height -= 550;
-                win.Width -= 260;
+                win.rHelp.Height = new GridLength(0, GridUnitType.Pixel);
+                win.Height -= 480;
+                win.Width -= 270;
             }
         }
 

@@ -5,15 +5,22 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:STTGoPlayer"
         mc:Ignorable="d" Left="0" Top="0"
-        Title="VoiceGoban - github.com/blamarche" Height="73.927" Width="289.153" Topmost="True" ResizeMode="NoResize" Background="#FF383838">
-    <Grid>
+        Loaded="Window_Loaded"
+        Title="VoiceGoban - github.com/blamarche" Height="77.66" Width="298.752" Topmost="True" ResizeMode="NoResize" Background="#FF383838">
+    <Grid Margin="5"> 
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Name="rHelp" Height="0"  />
+        </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="273*"/>
-            <ColumnDefinition Width="10*"/>
+            <ColumnDefinition Width="253*"/>
+            <ColumnDefinition Width="15*"/>
         </Grid.ColumnDefinitions>
-        <Label x:Name="lStatus" Content="..." HorizontalAlignment="Left" Margin="4,5,0,0" VerticalAlignment="Top" Width="246" FontWeight="Bold" BorderBrush="#FFDDDDDD" BorderThickness="0,0,0,1" Foreground="#FFD7D7D7"/>
-        <Button x:Name="bHelp" Content="?" Margin="256,8,7.4,0" VerticalAlignment="Top" Click="BHelp_Click" Grid.ColumnSpan="2"/>
-        <TextBlock x:Name="tHelp" HorizontalAlignment="Left" Margin="4,40,-334.6,-824" TextWrapping="Wrap" Text="Help Goes Here" VerticalAlignment="Top" Height="828" Width="613" IsEnabled="False" Grid.ColumnSpan="2" Foreground="#FFD7D7D7"/>
+        <Label Grid.Row="0" Grid.Column="0" x:Name="lStatus" Content="..." Margin="0,0,5.2,-0.2" VerticalAlignment="Top" FontWeight="Bold" BorderBrush="#FFDDDDDD" BorderThickness="0,0,0,1" Foreground="#FFD7D7D7"/>
+        <Button Grid.Row="0" x:Name="bHelp" Content="?" Margin="0,0,0.0,0" Click="BHelp_Click" Grid.Column="1"/>
+        <ScrollViewer x:Name="sHelp" Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,10,0,0">
+            <TextBlock x:Name="tHelp" Margin="0,1,0.6,-17" TextWrapping="Wrap" Text="Help Goes Here" IsEnabled="False" Foreground="#FFD7D7D7" ScrollViewer.CanContentScroll="True" ScrollViewer.VerticalScrollBarVisibility="Auto"/>
+        </ScrollViewer>
 
     </Grid>
 </Window>
