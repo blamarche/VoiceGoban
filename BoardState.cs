@@ -123,22 +123,14 @@ namespace STTGoPlayer
                     PxInfo tl = getPixel(board, cx - (int)(gridSquareWf * 0.25f), cy - (int)(gridSquareHf * 0.25f));
                     PxInfo tr = getPixel(board, cx + (int)(gridSquareWf * 0.25f), cy - (int)(gridSquareHf * 0.25f));
                     PxInfo bl = getPixel(board, cx - (int)(gridSquareWf * 0.25f), cy + (int)(gridSquareHf * 0.25f));
-                    PxInfo br = getPixel(board, cx + (int)(gridSquareWf * 0.25f), cy + (int)(gridSquareHf * 0.25f));
 
-                    /* near-center points
-                    PxInfo ctl = getPixel(board, cx - (int)(gridSquareWf * 0.1f), cy - (int)(gridSquareHf * 0.1f));
-                    PxInfo ctr = getPixel(board, cx + (int)(gridSquareWf * 0.1f), cy - (int)(gridSquareHf * 0.1f));
-                    PxInfo cbl = getPixel(board, cx - (int)(gridSquareWf * 0.1f), cy + (int)(gridSquareHf * 0.1f));
-                    PxInfo cbr = getPixel(board, cx + (int)(gridSquareWf * 0.1f), cy + (int)(gridSquareHf * 0.1f));
-                    */
-                            
                     //cardinal directions with slight offset to avoid grid line on empty board
                     PxInfo l = getPixel(board, cx - (int)(gridSquareWf * 0.37f), cy - (int)(gridSquareHf * 0.10f));
                     PxInfo r = getPixel(board, cx + (int)(gridSquareWf * 0.37f), cy + (int)(gridSquareHf * 0.10f));
                     PxInfo t = getPixel(board, cx - (int)(gridSquareWf * 0.10f), cy - (int)(gridSquareHf * 0.37f));
-                    PxInfo b = getPixel(board, cx + (int)(gridSquareWf * 0.10f), cy + (int)(gridSquareHf * 0.37f));
+                    
+                    int grey = (t.Grey + l.Grey + r.Grey + tl.Grey + tr.Grey + bl.Grey) / 6; // works with tygem, gopanda, ogs, lizzie, etc
 
-                    int grey = (t.Grey + l.Grey + r.Grey + b.Grey+ tl.Grey + tr.Grey + bl.Grey + br.Grey) / 8;
                     //int max = (  tl.Max + tr.Max + bl.Max + br.Max + tl2.Max + tr2.Max + bl2.Max + br2.Max) / 8; 
                     //int min = ( tl.Min + tr.Min + bl.Min + br.Min + tl2.Min + tr2.Min + bl2.Min + br2.Min) / 8; 
                     pixels[i, j] = new PxInfo(grey, 127, 127);
@@ -185,7 +177,7 @@ namespace STTGoPlayer
             CalibratedGrey = emptyGrey;
 
             if (blackDiff < 20)
-                blackThreshold = CalibratedBlack = 10;
+               blackThreshold = CalibratedBlack = 10;
             if (whiteDiff < 20)
                whiteThreshold = CalibratedWhite = 245;
 

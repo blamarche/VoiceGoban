@@ -177,7 +177,7 @@ namespace STTGoPlayer
                 {
                     if (c.PreviousStone==BoardState.Stone.Empty && c.Stone!= currentGameColor)
                     {
-                        speechOn = false;
+                        sre.SpeechRecognized -= sre_SpeechRecognized;
 
                         var s = currentGame.BoardString;
                         int x = c.X + 65;
@@ -194,7 +194,7 @@ namespace STTGoPlayer
 
                         //count++;
                         //if (count >= 2)
-                        speechOn = true;
+                        sre.SpeechRecognized += sre_SpeechRecognized;
                         break;
                     }
                 }
@@ -430,7 +430,11 @@ namespace STTGoPlayer
                     if (autoPlay)
                         ClickMouse();
                     if (enableReadback)
-                        ss.Speak(txt.Replace("AIY", "A")); //not async because this might cause duplicate commands to be detected
+                    {
+                        sre.SpeechRecognized -= sre_SpeechRecognized;
+                        ss.Speak(txt.Replace("AIY", "A"));
+                        sre.SpeechRecognized += sre_SpeechRecognized;
+                    }
                 }
                 return;//skip setting save
             }
