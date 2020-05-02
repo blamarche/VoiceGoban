@@ -66,8 +66,14 @@ namespace STTGoPlayer
             sre = new SpeechRecognitionEngine(ci);
             sre.SetInputToDefaultAudioDevice();
             sre.SpeechRecognized += sre_SpeechRecognized;
-            
-            win.tHelp.Text = File.ReadAllText("help.txt")+"\r\n";
+
+            try
+            {
+                win.tHelp.Text = File.ReadAllText("help.txt") + "\r\n";
+            } catch (Exception e)
+            {
+                MessageBox.Show("Error reading help.txt. Help will be blank.");
+            }
             
             Choices ch_StartStopCommands = new Choices();
             ch_StartStopCommands.Add("speech on");
@@ -100,6 +106,7 @@ namespace STTGoPlayer
             ch_play.Add("board size 19");
             ch_play.Add("board size 13");
             ch_play.Add("board size 9");
+            ch_play.Add("troubleshoot");
             GrammarBuilder gb_play = new GrammarBuilder();
             gb_play.Append(ch_play);
             Grammar g_play = new Grammar(gb_play);
@@ -161,7 +168,7 @@ namespace STTGoPlayer
 
         private void boardStateTimer_Tick(object sender, EventArgs e)
         {
-            currentGame.UpdateBoardState(false);
+            currentGame.UpdateBoardState(true);
             var changes = currentGame.GetBoardChanges();
             if (changes != null && changes.Length>0)
             {
@@ -170,6 +177,8 @@ namespace STTGoPlayer
                 {
                     if (c.PreviousStone==BoardState.Stone.Empty && c.Stone!= currentGameColor)
                     {
+                        speechOn = false;
+
                         var s = currentGame.BoardString;
                         int x = c.X + 65;
                         if (!icoordEnabled && c.X > 7)
@@ -178,13 +187,14 @@ namespace STTGoPlayer
                         string ch = Char.ToString((char)(x));
                         string color = (enableOpponentColorRead ? c.Stone.ToString()+", " : "");
 
-                        if (ascending)
-                            ss.SpeakAsync(color + ch + ", " + (c.Y + 1));
+                        if (ascending) //not async because this might cause duplicate commands to be detected
+                            ss.Speak(color + ch + ", " + (c.Y + 1));
                         else
-                            ss.SpeakAsync(color + ch + ", " + (boardSize - c.Y));
+                            ss.Speak(color + ch + ", " + (boardSize - c.Y));
 
                         //count++;
                         //if (count >= 2)
+                        speechOn = true;
                         break;
                     }
                 }
@@ -385,6 +395,18 @@ namespace STTGoPlayer
                 ClickMouse();
                 SpeakAndLabel("click");
             }
+            else if (txt.IndexOf("troubleshoot") >= 0)
+            {
+                if (currentGame!=null)
+                {
+                    SpeakAndLabel("troubleshoot");
+                    currentGame.UpdateBoardState(true, true);
+                    win.tHelp.FontFamily = new FontFamily("Courier New");
+                    win.tHelp.Text = currentGame.BoardString;
+                    win.tHelp.Text += "\r\n\r\n" + currentGame.CalibratedGrey + ", " + currentGame.CalibratedBlack + ", " + currentGame.CalibratedWhite;
+                    //System.Diagnostics.Process.Start("board.png");
+                }
+            }
             else //move mouse to coordinate
             {
                 if (txt.Length == 0) return;
@@ -408,7 +430,7 @@ namespace STTGoPlayer
                     if (autoPlay)
                         ClickMouse();
                     if (enableReadback)
-                        ss.SpeakAsync(txt.Replace("AIY","A"));
+                        ss.Speak(txt.Replace("AIY", "A")); //not async because this might cause duplicate commands to be detected
                 }
                 return;//skip setting save
             }

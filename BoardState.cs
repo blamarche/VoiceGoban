@@ -26,10 +26,15 @@ namespace STTGoPlayer
         private Rectangle bounds;
         private double scaleFactor;
         private int gridSquareW, gridSquareH;
+        private float gridSquareWf, gridSquareHf;
 
         private int baseBoardGrey = 165;
         private int emptyGrey;
+
         public string BoardString { get; private set; }
+        public int CalibratedGrey { get; private set; }
+        public int CalibratedWhite { get; private set; }
+        public int CalibratedBlack { get; private set; }
 
         public BoardState(int size, Vector topleft, Vector bottomRight)
         {
@@ -40,9 +45,11 @@ namespace STTGoPlayer
             bounds = new Rectangle((int)((topleft.X) * scaleFactor), (int)((topleft.Y) * scaleFactor), width, height);
             boardSize = size;
 
-            gridSquareW = bounds.Width / (boardSize - 1);
-            gridSquareH = bounds.Height / (boardSize - 1);
-             
+            gridSquareWf = (float)bounds.Width / ((float)boardSize - 1f);
+            gridSquareHf = (float)bounds.Height / ((float)boardSize - 1f);
+            gridSquareW = (int)gridSquareWf;
+            gridSquareH = (int)gridSquareHf;
+
             bounds = new Rectangle(bounds.X - gridSquareW / 2, bounds.Y - gridSquareH / 2, width + gridSquareW, height + gridSquareH);
 
             grid = new Stone[boardSize, boardSize];
@@ -101,35 +108,42 @@ namespace STTGoPlayer
                 {
                     //dont use exact center, move out to 4 
                     int cx, cy;
-                    cx = (gridSquareW * i) + gridSquareW / 2;
-                    cy = (gridSquareH * j) + gridSquareH / 2;
-                    //grab not quite center px and 4 box sample points
-                    //PxInfo c = getPixel(board, cx - (int)(gridSquareW * 0.10f), cy - (int)(gridSquareH * 0.10f));
+                    cx = (int)((gridSquareWf * (float)i) + gridSquareWf / 2.0f);
+                    cy = (int)((gridSquareHf * (float)j) + gridSquareHf / 2.0f);
                     
-                    PxInfo tl = getPixel(board, cx - (int)(gridSquareW * 0.25f), cy - (int)(gridSquareH * 0.25f));
-                    PxInfo tr = getPixel(board, cx + (int)(gridSquareW * 0.25f), cy - (int)(gridSquareH * 0.25f));
-                    PxInfo bl = getPixel(board, cx - (int)(gridSquareW * 0.25f), cy + (int)(gridSquareH * 0.25f));
-                    PxInfo br = getPixel(board, cx + (int)(gridSquareW * 0.25f), cy + (int)(gridSquareH * 0.25f));
-                    
-                    /* testing verticals
-                    PxInfo tl = getPixel(board, cx - (int)(gridSquareW * 0.45f), cy);
-                    PxInfo tr = getPixel(board, cx + (int)(gridSquareW * 0.45f), cy);
-                    PxInfo bl = getPixel(board, cx, cy + (int)(gridSquareH * 0.45f));
-                    PxInfo br = getPixel(board, cx, cy + (int)(gridSquareH * 0.45f));
+                    /* debug each square
+                    Bitmap bm = new Bitmap(gridSquareW, gridSquareH);
+                    var g = Graphics.FromImage(bm);
+                    g.DrawImage(board, new Rectangle(0, 0, gridSquareW, gridSquareH), new Rectangle(cx - gridSquareW / 2, cy - gridSquareH / 2, gridSquareW, gridSquareH), GraphicsUnit.Pixel);
+                    bm.Save(i + "-" + j + ".png");
                     */
+                
+                    //grab not quite center px and 4 box sample points at 2 distances
 
-                    int grey = ( tl.Grey + tr.Grey + bl.Grey + br.Grey) / 4; 
-                    int max = (  tl.Max + tr.Max + bl.Max + br.Max) / 4; 
-                    int min = ( tl.Min + tr.Min + bl.Min + br.Min) / 4; 
-                    pixels[i, j] = new PxInfo(grey, min, max);
+                    PxInfo tl = getPixel(board, cx - (int)(gridSquareWf * 0.25f), cy - (int)(gridSquareHf * 0.25f));
+                    PxInfo tr = getPixel(board, cx + (int)(gridSquareWf * 0.25f), cy - (int)(gridSquareHf * 0.25f));
+                    PxInfo bl = getPixel(board, cx - (int)(gridSquareWf * 0.25f), cy + (int)(gridSquareHf * 0.25f));
+                    PxInfo br = getPixel(board, cx + (int)(gridSquareWf * 0.25f), cy + (int)(gridSquareHf * 0.25f));
 
-                    //autocalibrate color intensities of stones and empty baseline
-                    if (guessEmpty && Math.Abs(baseBoardGrey - grey) < emptyDiff)
-                    {
-                        emptyDiff = Math.Abs(baseBoardGrey - grey);
-                        emptyGrey = grey;
-                    }
+                    /* near-center points
+                    PxInfo ctl = getPixel(board, cx - (int)(gridSquareWf * 0.1f), cy - (int)(gridSquareHf * 0.1f));
+                    PxInfo ctr = getPixel(board, cx + (int)(gridSquareWf * 0.1f), cy - (int)(gridSquareHf * 0.1f));
+                    PxInfo cbl = getPixel(board, cx - (int)(gridSquareWf * 0.1f), cy + (int)(gridSquareHf * 0.1f));
+                    PxInfo cbr = getPixel(board, cx + (int)(gridSquareWf * 0.1f), cy + (int)(gridSquareHf * 0.1f));
+                    */
+                            
+                    //cardinal directions with slight offset to avoid grid line on empty board
+                    PxInfo l = getPixel(board, cx - (int)(gridSquareWf * 0.37f), cy - (int)(gridSquareHf * 0.10f));
+                    PxInfo r = getPixel(board, cx + (int)(gridSquareWf * 0.37f), cy + (int)(gridSquareHf * 0.10f));
+                    PxInfo t = getPixel(board, cx - (int)(gridSquareWf * 0.10f), cy - (int)(gridSquareHf * 0.37f));
+                    PxInfo b = getPixel(board, cx + (int)(gridSquareWf * 0.10f), cy + (int)(gridSquareHf * 0.37f));
 
+                    int grey = (t.Grey + l.Grey + r.Grey + b.Grey+ tl.Grey + tr.Grey + bl.Grey + br.Grey) / 8;
+                    //int max = (  tl.Max + tr.Max + bl.Max + br.Max + tl2.Max + tr2.Max + bl2.Max + br2.Max) / 8; 
+                    //int min = ( tl.Min + tr.Min + bl.Min + br.Min + tl2.Min + tr2.Min + bl2.Min + br2.Min) / 8; 
+                    pixels[i, j] = new PxInfo(grey, 127, 127);
+
+                    //autocalibrate color intensities
                     if (grey < darkest)
                         darkest = grey;
 
@@ -137,11 +151,43 @@ namespace STTGoPlayer
                         lightest = grey;
                 }
 
-            float thresholdDiff = 0.5f;
-            int whiteDiff = lightest - emptyGrey;
+            //determine empty board space color
+            if (guessEmpty) 
+            {
+                int darkLightAvg = (darkest + lightest) / 2;
+                int darkLightDiff = Math.Abs(darkest - lightest);
+                for (var i = 0; i < boardSize; i++)
+                    for (var j = 0; j < boardSize; j++)
+                    {
+                        if (darkLightDiff > 75 && Math.Abs(darkLightAvg - pixels[i, j].Grey) < emptyDiff)
+                        {
+                            emptyDiff = Math.Abs((darkest + lightest) / 2 - pixels[i, j].Grey);
+                            emptyGrey = pixels[i, j].Grey;
+                        }
+                        else if (Math.Abs(baseBoardGrey - pixels[i, j].Grey) < emptyDiff)
+                        {
+                            emptyDiff = Math.Abs(baseBoardGrey - pixels[i, j].Grey);
+                            emptyGrey = pixels[i, j].Grey;
+                        }
+                    }
+            }
+
+            float thresholdDiffW = 0.18f;
+            float thresholdDiffB = 0.18f;
             int blackDiff = emptyGrey - darkest;
-            int whiteThreshold = (int)(whiteDiff * thresholdDiff) + emptyGrey;
-            int blackThreshold = emptyGrey - (int)(blackDiff * thresholdDiff);
+            int whiteDiff = lightest - emptyGrey;
+            
+            int whiteThreshold = lightest - (int)(whiteDiff * thresholdDiffW);
+            int blackThreshold = darkest + (int)(blackDiff * thresholdDiffB);
+
+            CalibratedWhite = whiteThreshold;
+            CalibratedBlack = blackThreshold;
+            CalibratedGrey = emptyGrey;
+
+            if (blackDiff < 20)
+                blackThreshold = CalibratedBlack = 10;
+            if (whiteDiff < 20)
+               whiteThreshold = CalibratedWhite = 245;
 
             string debug = "";
             for (var j = 0; j < boardSize; j++)
