@@ -35,6 +35,8 @@ namespace STTGoPlayer
         static bool ascending = false;
         static bool icoordEnabled = false;
         static bool enableReadback = false;
+        static bool spectatorMode = false;
+        //static bool enableExcitedVoice = false;
         static bool autoPlay = false;
         static bool enableOpponentColorRead = true;
         static int boardSize = 19;
@@ -49,6 +51,8 @@ namespace STTGoPlayer
         static BoardState.Stone currentGameColor;
         static BoardState currentGame;
         static DispatcherTimer boardStateTimer;
+
+        static string lastSpoken = "";
 
         public MainWindow()
         {
@@ -80,6 +84,7 @@ namespace STTGoPlayer
             ch_StartStopCommands.Add("speech off");
             ch_StartStopCommands.Add("male voice");
             ch_StartStopCommands.Add("female voice");
+            //ch_StartStopCommands.Add("toggle excited voice");
             GrammarBuilder gb_StartStop = new GrammarBuilder();
             gb_StartStop.Append(ch_StartStopCommands);
             Grammar g_StartStop = new Grammar(gb_StartStop);
@@ -96,6 +101,8 @@ namespace STTGoPlayer
             ch_play.Add("enable auto");
             ch_play.Add("disable read back");
             ch_play.Add("enable read back");
+            ch_play.Add("enable spectator");
+            ch_play.Add("disable spectator");
             ch_play.Add("start game as black");
             ch_play.Add("start game as white");
             ch_play.Add("stop game");
@@ -107,6 +114,7 @@ namespace STTGoPlayer
             ch_play.Add("board size 13");
             ch_play.Add("board size 9");
             ch_play.Add("troubleshoot");
+            ch_play.Add("repeat");
             GrammarBuilder gb_play = new GrammarBuilder();
             gb_play.Append(ch_play);
             Grammar g_play = new Grammar(gb_play);
@@ -175,7 +183,7 @@ namespace STTGoPlayer
                 //int count = 0;
                 foreach (var c in changes)
                 {
-                    if (c.PreviousStone==BoardState.Stone.Empty && c.Stone!= currentGameColor)
+                    if (c.PreviousStone==BoardState.Stone.Empty && (c.Stone!= currentGameColor || spectatorMode))
                     {
                         sre.SpeechRecognized -= sre_SpeechRecognized;
 
@@ -187,10 +195,14 @@ namespace STTGoPlayer
                         string ch = Char.ToString((char)(x));
                         string color = (enableOpponentColorRead ? c.Stone.ToString()+", " : "");
 
+                        string spk = "";
                         if (ascending) //not async because this might cause duplicate commands to be detected
-                            ss.Speak(color + ch + ", " + (c.Y + 1));
+                            spk=color + ch + ", " + (c.Y + 1);
                         else
-                            ss.Speak(color + ch + ", " + (boardSize - c.Y));
+                            spk=color + ch + ", " + (boardSize - c.Y);
+
+                        ss.Speak(spk);
+                        lastSpoken = spk;
 
                         //count++;
                         //if (count >= 2)
@@ -206,7 +218,7 @@ namespace STTGoPlayer
             //future use
         }
 
-        private HotKey hk_Tab, hk_Left, hk_Right, hk_Up, hk_Down, hk_Numpad5, hk_BrowserHome, hk_BrowserBack;
+        private HotKey hk_Tab, hk_Left, hk_Right, hk_Up, hk_Down, hk_Numpad5, hk_BrowserHome, hk_BrowserBack, hk_End;
         void EnableHotkeys()
         {
             hk_Tab = new HotKey(ModifierKeys.None, Keys.Tab, this);
@@ -232,12 +244,18 @@ namespace STTGoPlayer
 
             hk_Down = new HotKey(ModifierKeys.None, Keys.Down, this);
             hk_Down.HotKeyPressed += (k) => { MoveMouseRelative(MouseDirection.DOWN); };
+
+            hk_End = new HotKey(ModifierKeys.None, Keys.End, this);
+            hk_End.HotKeyPressed += (k) => { speechOn = !speechOn; win.lStatus.Content = "Speech detection "+(speechOn? "on":"off"); };
         }
 
         static void SpeakAndLabel(string speak, string label="")
         {
             win.lStatus.Content = (label=="" ? speak.ToUpper():label.ToUpper());
+            //if (enableExcitedVoice)
+            //    speak += "!";            
             ss.SpeakAsync(speak);
+            //lastSpoken = speak;
         }
 
         const float CONFIDENCE_THRESHOLD = 0.60f;
@@ -257,11 +275,13 @@ namespace STTGoPlayer
             {
                 SpeakAndLabel("Speech detection on");
                 speechOn = true;
+                return;
             }
             else if (txt.IndexOf("speech off") >= 0)
             {
                 SpeakAndLabel("Speech detection off");
                 speechOn = false;
+                return;
             }
             if (speechOn == false) return;
 
@@ -344,7 +364,15 @@ namespace STTGoPlayer
                 SpeakAndLabel("Male voice");
                 computervoice = VoiceGender.Male;
                 ss.SelectVoiceByHints(computervoice);
-            }
+            }/*
+            else if (txt.IndexOf("toggle excited voice") >= 0)
+            {
+                enableExcitedVoice = true;
+                if (enableExcitedVoice)
+                    SpeakAndLabel("Excited voice enabled");
+                else
+                    SpeakAndLabel("Excited voice disabled");
+            }*/
             else if (txt.IndexOf("disable auto") >= 0)
             {
                 SpeakAndLabel("Autoplay disabled");
@@ -364,6 +392,23 @@ namespace STTGoPlayer
             {
                 SpeakAndLabel("Coord readback enabled");
                 enableReadback = true;
+            }
+            else if (txt.IndexOf("disable spectator") >= 0)
+            {
+                SpeakAndLabel("Spectator mode disabled");
+                spectatorMode = false;
+                enableReadback = false;
+                currentGameColor = BoardState.Stone.Empty;
+                boardStateTimer.Stop();
+            }
+            else if (txt.IndexOf("enable spectator") >= 0)
+            {
+                SpeakAndLabel("Spectator mode enabled");
+                spectatorMode = true;
+                enableReadback = true;
+                currentGameColor = BoardState.Stone.Black;
+                currentGame = new BoardState(boardSize, topLeft, bottomRight);
+                boardStateTimer.Start();
             }
             else if (txt.IndexOf("ascending") >= 0)
             {
@@ -393,7 +438,12 @@ namespace STTGoPlayer
             else if (txt.IndexOf("click") >= 0)
             {
                 ClickMouse();
-                SpeakAndLabel("click");
+                win.lStatus.Content = "CLICK";
+                //SpeakAndLabel("Placed!","Click");
+            }
+            else if (txt.IndexOf("repeat") >= 0)
+            {
+                SpeakAndLabel(lastSpoken);
             }
             else if (txt.IndexOf("troubleshoot") >= 0)
             {
@@ -419,7 +469,16 @@ namespace STTGoPlayer
 
                 string[] tokens = txt.Split(' ');
                 if (tokens.Length <= 1) return;
-                int vindex = int.Parse(tokens[1].Trim());//txt.Substring(1).Trim()
+                int vindex;
+                try
+                {
+                    vindex = int.Parse(tokens[1].Trim());//txt.Substring(1).Trim()
+                }
+                catch (Exception err)
+                {
+                    //not a valid coord;
+                    return;
+                }
 
                 if (vindex>0 && vindex<=boardSize && hindex>0 && hindex<=boardSize)
                 {
@@ -432,7 +491,9 @@ namespace STTGoPlayer
                     if (enableReadback)
                     {
                         sre.SpeechRecognized -= sre_SpeechRecognized;
-                        ss.Speak(txt.Replace("AIY", "A"));
+                        string spk = txt.Replace("AIY", "A");
+                        ss.Speak(spk);
+                        lastSpoken = spk;
                         sre.SpeechRecognized += sre_SpeechRecognized;
                     }
                 }
@@ -469,6 +530,7 @@ namespace STTGoPlayer
             s += bottomRight.Y + "\n";
             s += enableHotkeys + "\n";
             s += enableOpponentColorRead + "\n";
+            //s += enableExcitedVoice + "\n";
 
             File.WriteAllText(path + SETTINGS_FILE, s);
         }
@@ -491,6 +553,7 @@ namespace STTGoPlayer
                     case 9: bottomRight.Y = double.Parse(lines[i]); break;
                     case 10: enableHotkeys = bool.Parse(lines[i]); break;
                     case 11: enableOpponentColorRead = bool.Parse(lines[i]); break;
+                    //case 12: enableExcitedVoice = bool.Parse(lines[i]); break;
                 }
             }
         }

@@ -27,7 +27,7 @@ Ensure your microphone is plugged in and working as the default Windows recordin
 1. Say any horizontal coordinate followed by a vertical number coordinate. Example: `C 16` or `B 3`. You can also use the phonetic alphabet to help the system understand your commands. Example: `Charlie 16` or `Bravo 3`.
 2. By default, you must then say `Click` to place the stone on the board. See the options below.
 
-Optional: (Experimental) Say `START GAME AS BLACK` or `START GAME AS WHITE` when you begin a game and it will attempt to read your opponents move coordinates by scanning the screen. If computer performance is poor while reading moves, try shrinking your board window.
+Optional: (Experimental) Say `START GAME AS BLACK` or `START GAME AS WHITE`, or `ENABLE SPECTATOR MODE` when you begin a game and it will attempt to read your opponents move coordinates by scanning the screen. If computer performance is poor while reading moves, try shrinking your board window.
 
 ### Frequently Used Options
 * `Enable Auto Play` - Automatically click the mouse after every movement on the grid. This is particularly useful if you are playing a blitz game, but can cause misplays if the speech engine doesn't detect a coordinate properly.

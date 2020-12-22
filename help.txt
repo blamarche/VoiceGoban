@@ -19,9 +19,6 @@ BOARD SIZE 9 - Set board size to 9x9
 DISABLE AUTO - (default) Disables auto-click after moving cursor
 ENABLE AUTO - Enables auto-click after moving cursor
 
-DISABLE HOT KEYS - Disables use of arrows to move cursor, Tab to click
-ENABLE HOT KEYS - (default) Enables use of arrows to move cursor, Tab to click
-
 DISABLE I COORDINATE - (default) Disables processing 'I' as a valid horizontal coordinate
 ENABLE I COORDINATE - Enables processing 'I' as a valid horizontal coordinate
 
@@ -33,8 +30,21 @@ FEMALE VOICE - Set computer readback voice to female
 
 - Experimental -
 START GAME AS BLACK - Start reading opponent's move coordinates 
-START GAME AS WHITE - Start reading opponent's move coordinates 
+START GAME AS WHITE - Start reading opponent's move coordinates
 STOP GAME - Stop reading back opponents moves
+
+ENABLE SPECTATOR MODE - Start reading all detected move coordinates
+DISABLE SPECTATOR MODE - Stop reading any moves
+
+REPEAT - Say the last spoken coordinates again
 
 DISABLE READING OPPONENT COLOR - Don't read the opponent color before each move
 ENABLE READING OPPONENT COLOR - (default) Read the opponent color before each move
+
+- Hotkeys -
+DISABLE HOT KEYS - Disables use of hotkeys
+ENABLE HOT KEYS - Enables the use of hotkeys
+
+ARROWS - Move mouse along the grid
+TAB, NUMPAD5, BROWSERHOME, BROWSERBACK - Click mouse
+END - Toggle speech detection on/off (aka. mute)
