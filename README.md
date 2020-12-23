@@ -25,7 +25,7 @@ Ensure your microphone is plugged in and working as the default Windows recordin
 
 ### Playing
 1. Say any horizontal coordinate followed by a vertical number coordinate. Example: `C 16` or `B 3`. You can also use the phonetic alphabet to help the system understand your commands. Example: `Charlie 16` or `Bravo 3`.
-2. By default, you must then say `Click` to place the stone on the board. See the options below.
+2. By default, you must then say `Click` to place the stone on the board. See the options below and in the help file for more options.
 
 Optional: (Experimental) Say `START GAME AS BLACK` or `START GAME AS WHITE`, or `ENABLE SPECTATOR MODE` when you begin a game and it will attempt to read your opponents move coordinates by scanning the screen. If computer performance is poor while reading moves, try shrinking your board window.
 
